@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{0B85CB2C-7C06-4ABA-8572-0E514E8434C7}</ProjectGuid>
     <RootNamespace>pbr</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -70,8 +70,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\Josiah\OneDrive\cpp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Josiah\OneDrive\cpp\lib\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\$(username)\OneDrive\cpp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\$(username)\OneDrive\cpp\lib\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

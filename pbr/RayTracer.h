@@ -28,7 +28,7 @@ public:
 			"top.jpg", "bottom.jpg",
 			"front.jpg", "back.jpg"
 		};
-		string root = "C:\\Users\\Josiah\\OneDrive\\media\\textures\\skybox\\001\\";
+		string root = "C:\\Users\\" + username + "\\OneDrive\\media\\textures\\skybox\\001\\";
 		transform(faces.begin(), faces.end(), faces.begin(), [&root](string path) {
 			return root + path;
 		});

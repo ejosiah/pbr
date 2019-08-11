@@ -239,6 +239,19 @@ bool intersectScene(Ray ray, out HitInfo hit) {
 		}
 	}
 
+	Plane plane;
+	plane.n = vec3(0, 1, 0);
+	plane.d = 0;
+	plane.id = 10;
+
+	local_hit.t = hit.t;
+	if(intersectPlane(ray, plane, local_hit)){
+		aHit = true;
+		if (local_hit.t < hit.t) {
+			hit = local_hit;
+		}
+	}
+
 	return aHit;
 }
 
@@ -280,25 +293,6 @@ Reflect_t reflect_t[64];
 
 vec4 trace(Ray ray, int depth) {
 	if (depth >= MAX_DEPTH) return vec4(0);
-	//Box box;
-	//box.min = vec3(-1, 2, -1);
-	//box.max = vec3(1, 4, 1);
-	//Sphere s = sphere[0];
-	//Cylinder c = cylinder[0];
-	//c.objectToWorld = c.worldToObject = mat4(1);
-	//c.id = 0;
-	//c.r = 1;
-	//c.yMax = 1;
-	//c.yMin = -1;
-	//c.phiMax = TWO_PI;
-	//	s.c = vec3(0, 3, 0);
-	//	s.r = 1;
-	//	s.thetaMin = 0;
-	//	s.thetaMax = PI;
-	//	s.phiMax = TWO_PI;
-	//	s.yMin = -1;
-	//	s.yMax = 1;
-
 	
 		//if(intersectCube(ray, box, false, hit)){
 		//	vec3 n = getNormal(ray, hit);
@@ -320,24 +314,6 @@ vec4 trace(Ray ray, int depth) {
 		//else{
 		//	color = texture(skybox, ray.d);
 		//}
-	//if (intersectsTriangle(ray, hit)) {
-	//	vec3 p = ray.o + ray.d * hit.t;
-	//	vec3 n = getNormal(ray, hit);
-	//	vec2 uv = getUV(ray, hit);
-
-	//	//	float t = p.z/maxDepth;
-	//	//	t = 1 - 1/(1 + exp(-t));
-	//	vec3 pColor = vec3(0.1, 0.1, 0.1);
-	//	//	pColor = texture(checker, uv).xyz;
-	//	vec4 lPos = camera.cameraToWorld * vec4(0, 0, 0, 1);
-	//	color = shade(p, n, lPos.xyz, pColor, 0);
-	//	color = vec4(n, 1);
-	//	//	color = texture(checker, interact.uv);
-	//	//	color = mix(vec4(0), vec4(1), t);
-	//}
-	//else {
-	//	color = texture(skybox, ray.d);
-	//}
 
 	//Plane plane;
 	//plane.n = vec3(0, 1, 0);
@@ -358,13 +334,7 @@ vec4 trace(Ray ray, int depth) {
 		SurfaceInteration interact;
 		intialize(hit, ray, interact);
 
-		float eta = 1 / 1.77;
-		Ray reflectRay;
-		reflectRay.o = interact.p;
-		reflectRay.d = normalize( refract(ray.d, interact.n, eta) );
-
-		color = mix(shade(interact, depth), texture(skybox, reflectRay.d), 0.6);
-	//	color =  texture(skybox, reflectRay.d);
+		color = shade(interact, depth);
 	}
 	else {
 		color = texture(skybox, ray.d);
@@ -377,16 +347,26 @@ vec4 shade(SurfaceInteration interact, int depth) {
 	vec3 n = interact.n;
 	vec3 I = vec3(1);
 	vec4 l = sphere[0].objectToWorld * vec4(sphere[0].c, 1.0);
-	vec3 wi = l.xyz - p;
-	vec3 wo = (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz;
+	vec3 wi = normalize( l.xyz - p);
+	vec3 wo = normalize( (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz );
 	vec3 h = normalize(wi + wo);
-	Material mat = material[interact.matId];
-	vec3 ka = mat.ambient.xyz;
-	vec3 kd = mat.diffuse.xyz;
-	vec3 ks = mat.specular.xyz;
-	float f = mat.shine;
 
-	vec3 Li = ka * vec3(0.3) + I * (max(0, dot(wi, n)) * kd + max(0, pow(dot(h, n), f)) * ks);
+	vec3 ka = vec3(0);
+	vec3 kd = interact.color.xyz;
+	vec3 ks = I;
+	float f = 5.0;
+
+	if(interact.matId >= 0){
+		Material mat = material[interact.matId];
+		ka = mat.ambient.xyz;
+		kd = mat.diffuse.xyz;
+		ks = mat.specular.xyz;
+		f = mat.shine;
+	}
+
+	vec3 Li = ka * vec3(0.3) + I * ka;
+	Li += I * max(0, dot(wi, n)) * kd;
+	Li += I * max(0, pow(dot(wo, h), f)) * ks;
 	return vec4(Li, 1);
 }
 

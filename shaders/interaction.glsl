@@ -146,6 +146,13 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		interact.p = ray.o + ray.d * hit.t;
 		break;
 	}
+	case PLANE: {
+		interact.p = ray.o + ray.d * hit.t;
+		interact.n = vec3(0, 1, 0);
+		interact.color = vec4(0.3, 0.3, 0.3, 1);
+		interact.matId = -1;
+		break;
+	}
 	}
 }
 

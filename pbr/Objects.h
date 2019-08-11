@@ -98,8 +98,8 @@ namespace obj {
 	public:
 		void init() {
 			maxDepth = std::numeric_limits<float>::lowest();
-				paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\werewolf.obj");
-			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\ChineseDragon.obj");
+			//	paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\werewolf.obj");
+				paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\ChineseDragon.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\blocks\\blocks.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\Armadillo.obj");
 
@@ -144,10 +144,11 @@ namespace obj {
 				vector<vec4> norms;
 				vector<vec4> st;
 				Material mat;
-				mat.ambient = { 0.1745,	0.01175, 0.01175, 1.0 };
-				mat.diffuse = { 0.61424, 0.04136, 0.04136, 1.0 };
-				mat.specular = { 0.727811, 0.626959, 0.626959, 1.0 };
-				mat.shine = 0.6 * 128;
+
+				mat.ambient = { 0.24725, 0.1995, 0.0745, 1.0 };
+				mat.diffuse = { 0.75164, 0.60648, 0.366065, 1.0 };
+				mat.specular = { 0.628281, 0.555802, 0.366065, 1.0 };
+				mat.shine = 0.4 * 128;
 				mat.ior = 1.76;
 				materials.push_back(mat);
 
