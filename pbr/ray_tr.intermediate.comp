@@ -259,7 +259,7 @@ bool intersectScene(Ray ray, out HitInfo hit) {
 	}
 	Plane plane;
 	plane.n = vec3(0, 1, 0);
-	plane.d = dot(plane.n, vec3( 0, -1, 0));;
+	plane.d = 0;
 	plane.id = 10;
 	local_hit.t = hit.t;
 	if(intersectPlane(ray, plane, local_hit)){
