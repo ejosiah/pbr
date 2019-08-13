@@ -98,8 +98,8 @@ namespace obj {
 	public:
 		void init() {
 			maxDepth = std::numeric_limits<float>::lowest();
-			//	paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\werewolf.obj");
-				paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\ChineseDragon.obj");
+				paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\werewolf.obj");
+			//	paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\ChineseDragon.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\blocks\\blocks.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\Armadillo.obj");
 
