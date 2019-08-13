@@ -300,23 +300,21 @@ Params params[64];
 
 bool isNull(int node){
 	if(node < 0) return true;
-	SurfaceInteration interact = params[node].interact;
-	Material mat = material[interact.matId];
-	if(mat.ior <= 0) return true;
+	if(params[node].depth < 0 || params[node].depth >= MAX_DEPTH) return true;
 	return false;
 }
 
 void doIntersect(inout Params pms, inout HitInfo hit){
 	if(pms.depth == MAX_DEPTH){
-		pms.interact.ior = 0;
+		material[interact.matId].ior = 0;
 		pms.color = vec3(0);
 	}else if (intersectScene(pms.ray, hit)) {
 		intialize(hit, pms.ray, pms.interact);
-
 		pms.color = shade(pms.interact, 0).xyz;
 	}
 	else {
 		pms.color = texture(skybox, pms.ray.d).xyz;
+		material[interact.matId].ior = 0;
 	}
 }
 
@@ -342,25 +340,34 @@ vec4 trace(Ray ray, int depth) {
 			vec3 wo = normalize( (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz );
 			vec3 h = normalize(wi + wo);
 			float ior = material[interact.matId].ior;
-			float kr = fresnel(ior, dot(l, h));
-			float kt = 1 - kr;
 
-			Ray local_ray;
-			local_ray.o = interact.p;
-			local_ray.d = normalize( reflect(ray.d, interact.n) );
-			local_ray.tMax = ray.tMax;
-			HitInfo local_hit;
+			if(ior > 0){
+				float kr = fresnel(ior, dot(l, h));
+				float kt = 1 - kr;
+
+				Ray local_ray;
+				local_ray.o = interact.p;
+				local_ray.d = normalize( reflect(ray.d, interact.n) );
+				local_ray.tMax = ray.tMax;
+				HitInfo local_hit;
 			
-			int right_child = right(root);
-			params[right_child].depth = params[root].depth + 1;
-			params[right_child].k = kr;
-			doIntersect(local_ray, params[right_child], local_hit);
+				int right_child = right(root);
+				params[right_child].depth = params[root].depth + 1;
+				params[right_child].k = kr;
+				doIntersect(local_ray, params[right_child], local_hit);
 
-			local_ray.d = normalize( refract(ray.d, interact.n, 1/ior) );
-			int left_child = left(root);
-			params[left_child].depth = params[root].depth + 1;
-			params[left_child].k = kt;
-			doIntersect(local_ray, params[left_child], local_hit);
+				local_ray.d = normalize( refract(ray.d, interact.n, 1/ior) );
+				int left_child = left(root);
+				params[left_child].depth = params[root].depth + 1;
+				params[left_child].k = kt;
+				doIntersect(local_ray, params[left_child], local_hit);
+			}else{
+				int right_child = right(root);
+				int left_child = left(root);
+
+				params[right_child].depth = -1;
+				params[left_child].depth = -1;
+			}
 	
 			if (!isNull(right(root))) {
 				push(stack, right(root));
@@ -376,12 +383,11 @@ vec4 trace(Ray ray, int depth) {
 			push(stack, root);
 			root = right(root);
 		}else {
-			int id = root;
-			if(!isNull(right(root)){
-				params[root].color += params[right(root)].color * params[right(root)].k;
-			}
 			if(!isNull(left(root)){
 				params[root].color += params[left(root)].color * params[left(root)].k;
+			}
+			if(!isNull(right(root)){
+				params[root].color += params[right(root)].color * params[right(root)].k;
 			}
 			root = -1;
 		}

@@ -149,7 +149,8 @@ namespace obj {
 				mat.diffuse = { 0.75164, 0.60648, 0.366065, 1.0 };
 				mat.specular = { 0.628281, 0.555802, 0.366065, 1.0 };
 				mat.shine = 0.4 * 128;
-				mat.ior = 1.76;
+				//mat.ior = 1.76;
+				mat.ior = 0;
 				materials.push_back(mat);
 
 				int matId = materials.size() - 1;
