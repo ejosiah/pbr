@@ -9,7 +9,3 @@ int right(int node) {
 int parent(int node) {
 return node == 0 ? -1 : (node - 1) / 2;
 }
-
-bool isNull(int node) {
-	return node < 0 || node >= 9;
-}

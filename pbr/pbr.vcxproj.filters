@@ -88,5 +88,11 @@
     <None Include="..\shaders\rr_tracer.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\shaders\stack.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\tree.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

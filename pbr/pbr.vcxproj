@@ -145,6 +145,8 @@
     <None Include="..\shaders\sampler.glsl" />
     <None Include="..\shaders\sphere.glsl" />
     <None Include="..\shaders\sphericalCS.glsl" />
+    <None Include="..\shaders\stack.glsl" />
+    <None Include="..\shaders\tree.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
