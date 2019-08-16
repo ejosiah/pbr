@@ -62,6 +62,15 @@ namespace obj {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+	struct Plane {
+		vec3 n;
+		float d;
+		int id;
+		int matId;
+	};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 	struct Shading {
 		vec4 n0;
 		vec4 n1;
@@ -99,14 +108,14 @@ namespace obj {
 		void init() {
 			maxDepth = std::numeric_limits<float>::lowest();
 			//	paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\werewolf.obj");
-				paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\ChineseDragon.obj");
+			paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\ChineseDragon.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\blocks\\blocks.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\Armadillo.obj");
 
 			Material m;
 			m.ambient = { 1, 1, 1, 1 };
 			m.diffuse = m.specular = vec4(1);
-			m.shine = 50;
+			m.shine = 128;
 			m.ior = 0;
 			materials.push_back(m);
 
@@ -124,6 +133,18 @@ namespace obj {
 			spheres.push_back(s);
 
 			initializeTriangles();
+
+			Plane plane;
+			plane.n = { 0, 1, 0 };
+			plane.d = dot(plane.n, min_point);
+			plane.id = planes.size();
+			planes.push_back(plane);
+			plane.matId = materials.size();
+
+			m.ambient = m.diffuse = vec4(0.3);
+			m.shine = 128;
+			materials.push_back(m);
+
 			buildBVH();
 
 			initialize(sphereId, 1, sizeof(Sphere) * spheres.size());
@@ -132,10 +153,12 @@ namespace obj {
 			initialize(bvh_id, 4, sizeof(geom::bvh::LinearBVHNode) * bvh_ssbo.nodes.size());
 			initialize(bvh_index_id, 5, sizeof(int) * bvh_index.data.size());
 			initialize(materialId, 7, sizeof(Material) * materials.size());
+			initialize(planeBuffer, 8, sizeof(Plane) * planes.size());
 
 		}
 
 		void initializeTriangles() {
+			min_point = vec3{ numeric_limits<float>::max() };
 			for (auto path : paths) {
 				vector<Mesh> meshes = loader.createMesh(path, 2, MeshLoader::DEFAULT_PROCESS_FLAGS, true);
 				normalizer.normalize(meshes, 3);
@@ -145,11 +168,11 @@ namespace obj {
 				vector<vec4> st;
 				Material mat;
 
-				mat.ambient = { 0.24725, 0.1995, 0.0745, 1.0 };
-				mat.diffuse = { 0.75164, 0.60648, 0.366065, 1.0 };
-				mat.specular = { 0.628281, 0.555802, 0.366065, 1.0 };
-				mat.shine = 0.4 * 128;
-				//mat.ior = 1.76;
+				mat.ambient = { 0.1745,	0.01175, 0.01175, 1.0 };
+				mat.diffuse = { 0.61424, 0.04136, 0.04136, 1.0 };
+				mat.specular = { 0.727811, 0.626959, 0.626959, 1.0 };
+				mat.shine = 128;
+				mat.ior = 1.76;
 				mat.ior = 0;
 				materials.push_back(mat);
 
@@ -195,6 +218,11 @@ namespace obj {
 							triangles.push_back(t);
 							shadings.push_back(s);
 
+							vec3 point;
+							min_point = glm::min(min_point, point = t.a.xyz);
+							min_point = glm::min(min_point, point = t.b.xyz);
+							min_point = glm::min(min_point, point = t.c.xyz);
+
 							maxDepth = std::max(std::max(std::max(t.a.z, t.b.z), t.c.z), maxDepth);
 						}
 					}
@@ -235,6 +263,11 @@ namespace obj {
 							s.id = t.id;
 							triangles.push_back(t);
 							shadings.push_back(s);
+
+							vec3 point;
+							min_point = glm::min(min_point, point = t.a.xyz);
+							min_point = glm::min(min_point, point = t.b.xyz);
+							min_point = glm::min(min_point, point = t.c.xyz);
 						}
 					}
 
@@ -303,6 +336,10 @@ namespace obj {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialId);
 			glBufferData(GL_SHADER_STORAGE_BUFFER, size, &materials[0], GL_DYNAMIC_DRAW);
 
+			size = sizeof(Plane) * planes.size();
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeBuffer);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, size, &planes[0], GL_DYNAMIC_DRAW);
+
 			send("maxDepth", maxDepth);
 			send("numTriangles", int(triangles.size()));
 			send("numNodes", numNodes);
@@ -364,11 +401,13 @@ namespace obj {
 		vector<Triangle> triangles;
 		vector<Shading> shadings;
 		vector<Sphere> spheres;
+		vector<Plane> planes;
 		vector<Material> materials;
 		GLuint sphereId;
 		GLuint materialId;
 		GLuint triangleBuffer;
 		GLuint shadingsBuffer;
+		GLuint planeBuffer;
 		GLuint bvh_id;
 		GLuint bvh_index_id;
 
@@ -379,6 +418,7 @@ namespace obj {
 		geom::bvh::BVHBuildNode* BVH;
 		geom::bvh::BVH_SSO bvh_ssbo;
 		geom::bvh::BVH_TRI_INDEX bvh_index;
+		vec3 min_point;
 
 	public:
 		BVHStats stats;

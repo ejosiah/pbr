@@ -60,6 +60,7 @@ struct SurfaceInteration {
 	vec3 dpdv;
 	vec4 color;
 	vec4 matId;
+	int shape;
 };
 
 struct HitInfo {
@@ -91,6 +92,7 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		interact.uv = vec2(u, v);
 		interact.color = vec4(0, 1, 0, 1);
 		interact.matId = s.matId;
+		interact.shape = SPHERE_SHAPE;
 		break;
 	}
 	case CYLINDER: {
@@ -121,6 +123,7 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		interact.uv = vec2(u, v);
 		interact.dpdu = dpdu;
 		interact.dpdv = dpdv;
+		interact.shape = CYLINDER;
 		break;
 	}
 	case TRIANGLE: {
@@ -140,6 +143,7 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		interact.uv = uv;
 		interact.color = vec4(0.1, 0.1, 0.1, 1);
 		interact.matId = tri.matId;
+		interact.shape = TRIANGLE;
 		break;
 	}
 	case BOX: {
@@ -147,10 +151,13 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		break;
 	}
 	case PLANE: {
+		Plane pl = plane[hit.id];
 		interact.p = ray.o + ray.d * hit.t;
-		interact.n = vec3(0, 1, 0);
+		interact.n = pl.n;
+		interact.uv = vec2(interact.p/1000);
 		interact.color = vec4(0.3, 0.3, 0.3, 1);
-		interact.matId = -1;
+		interact.matId = pl.matId;
+		interact.shape = PLANE;
 		break;
 	}
 	}

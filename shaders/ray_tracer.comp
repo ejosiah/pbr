@@ -35,10 +35,11 @@ const int BOX = 2;
 const int TRIANGLE = 3;
 const int PLANE = 4;
 
-struct Plane{
+struct Plane {
 	vec3 n;
 	float d;
 	int id;
+	int matId;
 };
 
 struct Box{
@@ -147,6 +148,7 @@ struct SurfaceInteration{
 	vec3 dpdv;
 	vec4 color;
 	int matId;
+	int shape;
 };
 
 struct HitInfo{
@@ -242,6 +244,10 @@ layout(std430, binding=6) buffer CYLINDER_SSB0{
 
 layout(std430, binding=7) buffer MATERIAL_SSB0{
 	Material material[];
+};
+
+layout(std430, binding=8) buffer PLANE_SSB0{
+	Plane plane[];
 };
 
 vec4 trace(Ray ray, int depth);
