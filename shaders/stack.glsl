@@ -8,6 +8,11 @@ bool empty(stack stack) {
 	return stack.size == 0;
 }
 
+void init(inout stack stack) {
+	stack.top = 0;
+	stack.size = 0;
+}
+
 void push(inout stack stack, int elm) {
 	stack.top = stack.size;
 	stack.size += 1;
