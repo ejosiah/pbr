@@ -217,7 +217,7 @@ float ro(float n);
 
 float fresnel(float n, float cos0);
 
-const int numSpheres = 1;
+const int numSpheres = 0;
 
 bool anyHit(Ray ray){
 	HitInfo local_hit;
@@ -373,7 +373,7 @@ vec4 shade(SurfaceInteration interact, int depth) {
 
 	vec3 Li = ka * vec3(0.3) + I * ka;
 	Li += I * max(0, dot(wi, n)) * kd;
-	Li += I * max(0, pow(dot(wo, h), f)) * ks;
+	Li += I * max(0, pow(dot(n, h), f)) * ks;
 
 	Ray shadow_ray;
 	shadow_ray.o = p + wi * 0.01;

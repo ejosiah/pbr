@@ -142,7 +142,6 @@ namespace obj {
 			plane.matId = materials.size();
 
 			m.ambient = m.diffuse = vec4(0.3);
-			m.shine = 128;
 			materials.push_back(m);
 
 			buildBVH();
@@ -341,6 +340,7 @@ namespace obj {
 			glBufferData(GL_SHADER_STORAGE_BUFFER, size, &planes[0], GL_DYNAMIC_DRAW);
 
 			send("maxDepth", maxDepth);
+		//	send("numTriangles", int(triangles.size()));
 			send("numTriangles", int(triangles.size()));
 			send("numNodes", numNodes);
 			send(vertices);
