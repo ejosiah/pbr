@@ -142,6 +142,7 @@ namespace obj {
 			plane.matId = materials.size();
 
 			m.ambient = m.diffuse = vec4(0.3);
+			m.ior = 0;
 			materials.push_back(m);
 
 			buildBVH();

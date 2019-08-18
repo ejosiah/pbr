@@ -301,8 +301,8 @@ bool intersectCube(Ray ray, Box box, out HitInfo hit) {
 	return tn < tf;
 }
 
-const int MAX_DEPTH = 1;
-
+const int MAX_DEPTH = 3;
+const int MAX_BOUNCES = 5;
 
 
 struct Params{
@@ -321,32 +321,26 @@ bool isNull(int node){
 	return false;
 }
 
-void doIntersect(inout Params pms){
+vec4 doIntersect(Ray ray, out SurfaceInteration interact){
 	HitInfo hit;
-	if(pms.depth == MAX_DEPTH){
-		pms.color = vec3(0);
-	}else if (intersectScene(pms.ray, hit)) {
-		intialize(hit, pms.ray, pms.interact);
-
-		pms.color = shade(pms.interact, 0).xyz;
+	if (intersectScene(ray, hit)) {
+		intialize(hit, ray, interact);
+		return shade(interact, 0);
 	}
 	else {
-		pms.color = texture(skybox, pms.ray.d).xyz;
+		interact.matId = -1;
+		return texture(skybox, ray.d);
 	}
 }
 
 vec4 trace(Ray ray, int depth) {
 	if (depth >= MAX_DEPTH) return vec4(0);
 	
-	params[0].depth = 0;
-	params[0].k = 1;
-	params[0].ray = ray;
-	doIntersect(params[0]);
+	SurfaceInteration interact;
 
-	stack stack;
-	init(stack);
-	
-	return  vec4(params[0].color, 1);
+	vec4 color = vec4(0);
+	return doIntersect(ray, interact);
+
 }
 
 vec4 shade(SurfaceInteration interact, int depth) {
@@ -380,7 +374,8 @@ vec4 shade(SurfaceInteration interact, int depth) {
 	shadow_ray.d = wi;
 	shadow_ray.tMax = 1000;
 	
-	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
+//	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
+	return vec4(Li, 1);
 }
 
 float ro(float n) {
