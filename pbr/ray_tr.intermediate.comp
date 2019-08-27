@@ -26,10 +26,11 @@ const int CYLINDER = 1;
 const int BOX = 2;
 const int TRIANGLE = 3;
 const int PLANE = 4;
-struct Plane{
+struct Plane {
 	vec3 n;
 	float d;
 	int id;
+	int matId;
 };
 struct Box{
 	vec3 min;
@@ -126,6 +127,8 @@ struct SurfaceInteration{
 	vec3 dpdv;
 	vec4 color;
 	int matId;
+	int shape;
+	int shapeId;
 };
 struct HitInfo{
 	float t;
@@ -202,6 +205,12 @@ layout(std430, binding=6) buffer CYLINDER_SSB0{
 layout(std430, binding=7) buffer MATERIAL_SSB0{
 	Material material[];
 };
+layout(std430, binding=8) buffer PLANE_SSB0{
+	Plane plane[];
+};
+layout(std430, binding=9) buffer X_FORMS{
+	mat4 xforms[];
+};
 vec4 trace(Ray ray, int depth);
 void main(){
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
@@ -273,7 +282,26 @@ vec3 getNormal(Ray ray, HitInfo hit);
 vec3 getPosition(Ray ray, HitInfo hit);
 float ro(float n);
 float fresnel(float n, float cos0);
-const int numSpheres = 1;
+const int numSpheres = 0;
+bool anyHit(Ray ray){
+	HitInfo local_hit;
+	local_hit.t = ray.tMax;
+	for (int i = 0; i < numSpheres; i++) {
+		Sphere s = sphere[i];
+		if (intersectSphere(ray, s, local_hit)) {
+			return true;
+		}
+	}
+	local_hit.t = ray.tMax;
+	if (intersectsTriangle(ray, local_hit)) {
+		return true;
+	}
+	local_hit.t = ray.tMax;
+	if(intersectPlane(ray, plane[0], local_hit)){
+		return true;
+	}
+	return false;
+}
 bool intersectScene(Ray ray, out HitInfo hit) {
 	hit.t = ray.tMax;
 	HitInfo local_hit;
@@ -296,17 +324,13 @@ bool intersectScene(Ray ray, out HitInfo hit) {
 			hit = local_hit;
 		}
 	}
-	//Plane plane;
-	//plane.n = vec3(0, 1, 0);
-	//plane.d = 0;
-	//plane.id = 10;
-	//local_hit.t = hit.t;
-	//if(intersectPlane(ray, plane, local_hit)){
-	//	aHit = true;
-	//	if (local_hit.t < hit.t) {
-	//		hit = local_hit;
-	//	}
-	//}
+	local_hit.t = hit.t;
+	if(intersectPlane(ray, plane[0], local_hit)){
+		aHit = true;
+		if (local_hit.t < hit.t) {
+			hit = local_hit;
+		}
+	}
 	return aHit;
 }
 bool intersectCube(Ray ray, Box box, out HitInfo hit) {
@@ -330,7 +354,8 @@ bool intersectCube(Ray ray, Box box, out HitInfo hit) {
 	hit.shape = BOX;
 	return tn < tf;
 }
-const int MAX_DEPTH = 1;
+const int MAX_DEPTH = 3;
+const int MAX_BOUNCES = 5;
 struct Params{
 	vec3 color;
 	float k;
@@ -344,94 +369,29 @@ bool isNull(int node){
 	if (params[node].depth < 0 || params[node].depth >= MAX_DEPTH) return true;
 	return false;
 }
-void doIntersect(inout Params pms){
+vec4 doIntersect(Ray ray, out SurfaceInteration interact){
 	HitInfo hit;
-	if(pms.depth == MAX_DEPTH){
-		pms.color = vec3(0);
-	}else if (intersectScene(pms.ray, hit)) {
-		intialize(hit, pms.ray, pms.interact);
-		pms.color = shade(pms.interact, 0).xyz;
+	if (intersectScene(ray, hit)) {
+		intialize(hit, ray, interact);
+		return shade(interact, 0);
 	}
 	else {
-		pms.color = texture(skybox, pms.ray.d).xyz;
+		interact.matId = -1;
+		return texture(skybox, ray.d);
 	}
 }
 vec4 trace(Ray ray, int depth) {
 	if (depth >= MAX_DEPTH) return vec4(0);
 	
+	SurfaceInteration interact;
 	vec4 color = vec4(0);
-	params[0].depth = 0;
-	params[0].k = 1;
-	params[0].ray = ray;
-	doIntersect(params[0]);
-	stack stack;
-	init(stack);
-	int root = 0;
-	
-	do {
-		
-		while (!isNull(root)) {
-			float ior = material[params[root].interact.matId].ior;
-			if (ior > 0) {
-				SurfaceInteration interact = params[root].interact;
-				vec4 l = sphere[0].objectToWorld * vec4(sphere[0].c, 1.0);
-				vec3 wi = normalize(l.xyz - interact.p);
-				vec3 wo = normalize((camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz);
-				vec3 h = normalize(wi + wo);
-				float kr = fresnel(ior, dot(l.xyz, h));
-				float kt = 1 - kr;
-				int right_child = right(root);
-				params[right_child].depth = params[root].depth + 1;
-				params[right_child].k = kr;
-				params[right_child].ray.o = interact.p;
-				params[right_child].ray.d = normalize(reflect(params[root].ray.d, interact.n));
-				params[right_child].ray.tMax = params[root].ray.tMax;
-				doIntersect(params[right_child]);
-				int left_child = left(root);
-				params[left_child].depth = params[root].depth + 1;
-				params[left_child].k = kt;
-				params[left_child].ray.o = interact.p;
-				params[left_child].ray.d = normalize(refract(params[root].ray.d, interact.n, 1 / ior));
-				params[left_child].ray.tMax = params[root].ray.tMax;
-				doIntersect(params[left_child]);
-			}
-			else {
-				int right_child = right(root);
-				int left_child = left(root);
-				params[right_child].depth = -1;
-				params[left_child].depth = -1;
-			}
-	
-			if (!isNull(right(root))) {
-				push(stack, right(root));
-			}
-			push(stack, root);
-			root = left(root);
-		}
-		root = pop(stack);
-		if (!isNull(right(root)) && peek(stack) == right(root)) {
-			pop(stack);
-			push(stack, root);
-			root = right(root);
-		}
-		else {
-			if(!isNull(right(root))){
-				params[root].color += params[right(root)].color * params[right(root)].k;
-			}
-			if(!isNull(left(root))){
-				params[root].color += params[left(root)].color * params[left(root)].k;
-			}
-			root = -1;
-		}
-	} while (!empty(stack));
-	
-	return  vec4(params[0].color, 1);
+	return doIntersect(ray, interact);
 }
 vec4 shade(SurfaceInteration interact, int depth) {
 	vec3 p = interact.p;
 	vec3 n = interact.n;
 	vec3 I = vec3(1);
-	vec4 l = sphere[0].objectToWorld * vec4(sphere[0].c, 1.0);
+	vec4 l = vec4(0, 10, 10, 1);
 	vec3 wi = normalize( l.xyz - p);
 	vec3 wo = normalize( (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz );
 	vec3 h = normalize(wi + wo);
@@ -446,10 +406,22 @@ vec4 shade(SurfaceInteration interact, int depth) {
 		ks = mat.specular.xyz;
 		f = mat.shine;
 	}
+	if (interact.shape == PLANE) {
+		ka = vec3(0);
+		kd = texture(checker, interact.uv).xyz;
+		ks = vec3(0);
+		f = 20.0;
+	}
 	vec3 Li = ka * vec3(0.3) + I * ka;
 	Li += I * max(0, dot(wi, n)) * kd;
-	Li += I * max(0, pow(dot(wo, h), f)) * ks;
-	return vec4(Li, 1);
+	Li += I * max(0, pow(dot(n, h), f)) * ks;
+	Ray shadow_ray;
+	shadow_ray.o = p + wi * 0.01;
+	shadow_ray.d = wi;
+	shadow_ray.tMax = 1000;
+	
+	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
+//	return vec4(Li, 1);
 }
 float ro(float n) {
 	return ((n - 1) * (n - 1)) / ((n + 1) * (n + 1));
@@ -551,10 +523,17 @@ bool intersectCylinder(Ray ray, Cylinder cylin, out HitInfo hit) {
 	return true;
 }
 
+vec3 computePrimaryTexDir(vec3 n, vec3 p) {
+	vec3 a = cross(n, vec3(1, 0, 0));
+	vec3 b = cross(n, vec3(0, 0, 1));
+	vec3 max_ab = dot(a, a) < dot(b, b) ? b : a;
+	vec3 c = cross(n, vec3(0, 1, 0));
+	return normalize(dot(max_ab, max_ab) < dot(c, c) ? c : max_ab);
+}
 bool intersectPlane(Ray ray, Plane p, out HitInfo hit) {
 	float t = p.d - dot(p.n, ray.o);
 	t /= dot(p.n, ray.d);
-	if (t < 0 || t > 10 || t > ray.tMax) {
+	if (t < 0 || t > ray.tMax) {
 		return false;
 	}
 	hit.t = t;
@@ -725,6 +704,7 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		interact.uv = vec2(u, v);
 		interact.color = vec4(0, 1, 0, 1);
 		interact.matId = s.matId;
+		interact.shape = SPHERE_SHAPE;
 		break;
 	}
 	case CYLINDER: {
@@ -751,6 +731,7 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		interact.uv = vec2(u, v);
 		interact.dpdu = dpdu;
 		interact.dpdv = dpdv;
+		interact.shape = CYLINDER;
 		break;
 	}
 	case TRIANGLE: {
@@ -769,6 +750,7 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		interact.uv = uv;
 		interact.color = vec4(0.1, 0.1, 0.1, 1);
 		interact.matId = tri.matId;
+		interact.shape = TRIANGLE;
 		break;
 	}
 	case BOX: {
@@ -776,10 +758,16 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		break;
 	}
 	case PLANE: {
+		Plane pl = plane[hit.id];
 		interact.p = ray.o + ray.d * hit.t;
-		interact.n = vec3(0, 1, 0);
+		interact.n = pl.n;
 		interact.color = vec4(0.3, 0.3, 0.3, 1);
-		interact.matId = -1;
+		interact.matId = pl.matId;
+		interact.shape = PLANE;
+		interact.shapeId = hit.id;
+	
+		vec3 p = interact.p;
+		interact.uv = vec2(p.x / 100, p.z / 100);
 		break;
 	}
 	}

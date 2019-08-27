@@ -114,6 +114,8 @@ struct SurfaceInteration {
 	vec3 dpdu;
 	vec3 dpdv;
 	int matId;
+	int objId;
+	int objType;
 };
 
 struct HitInfo {
@@ -217,7 +219,29 @@ float ro(float n);
 
 float fresnel(float n, float cos0);
 
-const int numSpheres = 1;
+const int numSpheres = 0;
+
+bool anyHit(Ray ray){
+	HitInfo local_hit;
+	local_hit.t = ray.tMax;
+	for (int i = 0; i < numSpheres; i++) {
+		Sphere s = sphere[i];
+		if (intersectSphere(ray, s, local_hit)) {
+			return true;
+		}
+	}
+
+	local_hit.t = ray.tMax;
+	if (intersectsTriangle(ray, local_hit)) {
+		return true;
+	}
+
+	local_hit.t = ray.tMax;
+	if(intersectPlane(ray, plane[0], local_hit)){
+		return true;
+	}
+	return false;
+}
 
 bool intersectScene(Ray ray, out HitInfo hit) {
 	hit.t = ray.tMax;
@@ -242,18 +266,13 @@ bool intersectScene(Ray ray, out HitInfo hit) {
 		}
 	}
 
-	//Plane plane;
-	//plane.n = vec3(0, 1, 0);
-	//plane.d = 0;
-	//plane.id = 10;
-
-	//local_hit.t = hit.t;
-	//if(intersectPlane(ray, plane, local_hit)){
-	//	aHit = true;
-	//	if (local_hit.t < hit.t) {
-	//		hit = local_hit;
-	//	}
-	//}
+	local_hit.t = hit.t;
+	if(intersectPlane(ray, plane[0], local_hit)){
+		aHit = true;
+		if (local_hit.t < hit.t) {
+			hit = local_hit;
+		}
+	}
 
 	return aHit;
 }
@@ -284,8 +303,8 @@ bool intersectCube(Ray ray, Box box, out HitInfo hit) {
 	return tn < tf;
 }
 
-const int MAX_DEPTH = 1;
-
+const int MAX_DEPTH = 3;
+const int MAX_BOUNCES = 5;
 
 
 struct Params{
@@ -304,112 +323,33 @@ bool isNull(int node){
 	return false;
 }
 
-void doIntersect(inout Params pms){
+vec4 doIntersect(Ray ray, out SurfaceInteration interact){
 	HitInfo hit;
-	if(pms.depth == MAX_DEPTH){
-		pms.color = vec3(0);
-	}else if (intersectScene(pms.ray, hit)) {
-		intialize(hit, pms.ray, pms.interact);
-
-		pms.color = shade(pms.interact, 0).xyz;
+	if (intersectScene(ray, hit)) {
+		intialize(hit, ray, interact);
+		return shade(interact, 0);
 	}
 	else {
-		pms.color = texture(skybox, pms.ray.d).xyz;
+		interact.matId = -1;
+		return texture(skybox, ray.d);
 	}
 }
 
 vec4 trace(Ray ray, int depth) {
 	if (depth >= MAX_DEPTH) return vec4(0);
 	
+	SurfaceInteration interact;
+
 	vec4 color = vec4(0);
+	return doIntersect(ray, interact);
 
-	params[0].depth = 0;
-	params[0].k = 1;
-	params[0].ray = ray;
-	doIntersect(params[0]);
-
-	stack stack;
-	init(stack);
-	int root = 0;
-	
-	do {
-		
-		while (!isNull(root)) {
-
-			float ior = material[params[root].interact.matId].ior;
-
-			if (ior > 0) {
-				SurfaceInteration interact = params[root].interact;
-				vec4 l = sphere[0].objectToWorld * vec4(sphere[0].c, 1.0);
-				vec3 wi = normalize(l.xyz - interact.p);
-				vec3 wo = normalize((camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz);
-				vec3 h = normalize(wi + wo);
-				float kr = fresnel(ior, dot(l.xyz, h));
-				float kt = 1 - kr;
-
-
-				int right_child = right(root);
-				params[right_child].depth = params[root].depth + 1;
-				params[right_child].k = kr;
-
-				params[right_child].ray.o = interact.p;
-				params[right_child].ray.d = normalize(reflect(params[root].ray.d, interact.n));
-				params[right_child].ray.tMax = params[root].ray.tMax;
-				doIntersect(params[right_child]);
-
-
-				int left_child = left(root);
-				params[left_child].depth = params[root].depth + 1;
-				params[left_child].k = kt;
-
-				params[left_child].ray.o = interact.p;
-				params[left_child].ray.d = normalize(refract(params[root].ray.d, interact.n, 1 / ior));
-				params[left_child].ray.tMax = params[root].ray.tMax;
-
-				doIntersect(params[left_child]);
-			}
-			else {
-				int right_child = right(root);
-				int left_child = left(root);
-
-				params[right_child].depth = -1;
-				params[left_child].depth = -1;
-			}
-	
-			if (!isNull(right(root))) {
-				push(stack, right(root));
-			}
-			push(stack, root);
-			root = left(root);
-		}
-
-		root = pop(stack);
-
-		if (!isNull(right(root)) && peek(stack) == right(root)) {
-			pop(stack);
-			push(stack, root);
-			root = right(root);
-		}
-		else {
-			if(!isNull(right(root))){
-				params[root].color += params[right(root)].color * params[right(root)].k;
-			}
-			if(!isNull(left(root))){
-				params[root].color += params[left(root)].color * params[left(root)].k;
-			}
-			root = -1;
-		}
-
-	} while (!empty(stack));
-	
-	return  vec4(params[0].color, 1);
 }
 
 vec4 shade(SurfaceInteration interact, int depth) {
 	vec3 p = interact.p;
 	vec3 n = interact.n;
 	vec3 I = vec3(1);
-	vec4 l = sphere[0].objectToWorld * vec4(sphere[0].c, 1.0);
+	vec4 l = vec4(0, 10, 10, 1);
 	vec3 wi = normalize( l.xyz - p);
 	vec3 wo = normalize( (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz );
 	vec3 h = normalize(wi + wo);
@@ -426,11 +366,24 @@ vec4 shade(SurfaceInteration interact, int depth) {
 		ks = mat.specular.xyz;
 		f = mat.shine;
 	}
+	if (interact.shape == PLANE) {
+		ka = vec3(0);
+		kd = texture(checker, interact.uv).xyz;
+		ks = vec3(0);
+		f = 20.0;
+	}
 
 	vec3 Li = ka * vec3(0.3) + I * ka;
 	Li += I * max(0, dot(wi, n)) * kd;
-	Li += I * max(0, pow(dot(wo, h), f)) * ks;
-	return vec4(Li, 1);
+	Li += I * max(0, pow(dot(n, h), f)) * ks;
+
+	Ray shadow_ray;
+	shadow_ray.o = p + wi * 0.01;
+	shadow_ray.d = wi;
+	shadow_ray.tMax = 1000;
+	
+	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
+//	return vec4(Li, 1);
 }
 
 float ro(float n) {
