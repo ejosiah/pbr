@@ -61,6 +61,7 @@ struct SurfaceInteration {
 	vec4 color;
 	vec4 matId;
 	int shape;
+	int shapeId;
 };
 
 struct HitInfo {
@@ -154,10 +155,14 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		Plane pl = plane[hit.id];
 		interact.p = ray.o + ray.d * hit.t;
 		interact.n = pl.n;
-		interact.uv = vec2(interact.p/1000);
 		interact.color = vec4(0.3, 0.3, 0.3, 1);
 		interact.matId = pl.matId;
 		interact.shape = PLANE;
+		interact.shapeId = hit.id;
+
+	
+		vec3 p = interact.p;
+		interact.uv = vec2(p.x / 100, p.z / 100);
 		break;
 	}
 	}

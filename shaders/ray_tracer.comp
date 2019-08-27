@@ -149,6 +149,7 @@ struct SurfaceInteration{
 	vec4 color;
 	int matId;
 	int shape;
+	int shapeId;
 };
 
 struct HitInfo{
@@ -248,6 +249,10 @@ layout(std430, binding=7) buffer MATERIAL_SSB0{
 
 layout(std430, binding=8) buffer PLANE_SSB0{
 	Plane plane[];
+};
+
+layout(std430, binding=9) buffer X_FORMS{
+	mat4 xforms[];
 };
 
 vec4 trace(Ray ray, int depth);

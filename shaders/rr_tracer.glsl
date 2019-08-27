@@ -114,6 +114,8 @@ struct SurfaceInteration {
 	vec3 dpdu;
 	vec3 dpdv;
 	int matId;
+	int objId;
+	int objType;
 };
 
 struct HitInfo {
@@ -364,6 +366,12 @@ vec4 shade(SurfaceInteration interact, int depth) {
 		ks = mat.specular.xyz;
 		f = mat.shine;
 	}
+	if (interact.shape == PLANE) {
+		ka = vec3(0);
+		kd = texture(checker, interact.uv).xyz;
+		ks = vec3(0);
+		f = 20.0;
+	}
 
 	vec3 Li = ka * vec3(0.3) + I * ka;
 	Li += I * max(0, dot(wi, n)) * kd;
@@ -374,8 +382,8 @@ vec4 shade(SurfaceInteration interact, int depth) {
 	shadow_ray.d = wi;
 	shadow_ray.tMax = 1000;
 	
-//	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
-	return vec4(Li, 1);
+	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
+//	return vec4(Li, 1);
 }
 
 float ro(float n) {
