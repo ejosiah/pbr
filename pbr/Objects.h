@@ -110,8 +110,11 @@ namespace obj {
 			//	paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\werewolf.obj");
 		//	paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\ChineseDragon.obj");
 			paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\lte-orb\\lte-orb.obj");
+		//	paths.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\lte-orb\\ite-orb_no_sphere.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\blocks\\blocks.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\Armadillo.obj");
+
+			paths_ls.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\lte-orb\\lte-orb-005.obj");
 
 			Material m;
 			m.ambient = { 1, 1, 1, 1 };
@@ -133,7 +136,8 @@ namespace obj {
 
 			spheres.push_back(s);
 
-			initializeTriangles();
+			initializeTriangles(paths, triangles);
+			initializeTriangles(paths_ls, triangles_ls);
 
 			Plane plane;
 			plane.n = { 0, 1, 0 };
@@ -146,7 +150,7 @@ namespace obj {
 			m.ior = 0;
 			materials.push_back(m);
 
-			buildBVH();
+			buildBVH(triangles);
 
 			initialize(sphereId, 1, sizeof(Sphere) * spheres.size());
 			initialize(triangleBuffer, 2, sizeof(Triangle) * triangles.size());
@@ -158,7 +162,7 @@ namespace obj {
 
 		}
 
-		void initializeTriangles() {
+		void initializeTriangles(vector<string>& paths, vector<Triangle>& triangles) {
 			min_point = vec3{ numeric_limits<float>::max() };
 			for (auto path : paths) {
 				vector<Mesh> meshes = loader.createMesh(path, 2, MeshLoader::DEFAULT_PROCESS_FLAGS, true);
@@ -169,17 +173,26 @@ namespace obj {
 				vector<vec4> st;
 				Material mat;
 
-				mat.ambient = { 0.1745,	0.01175, 0.01175, 1.0 };
-				mat.diffuse = { 0.61424, 0.04136, 0.04136, 1.0 };
-				mat.specular = { 0.727811, 0.626959, 0.626959, 1.0 };
-				mat.shine = 128;
-				mat.ior = 1.76;
-				mat.ior = 0;
-				materials.push_back(mat);
+				//mat.ambient = { 0.1745,	0.01175, 0.01175, 1.0 };
+				//mat.diffuse = { 0.61424, 0.04136, 0.04136, 1.0 };
+				//mat.specular = { 0.727811, 0.626959, 0.626959, 1.0 };
+				//mat.shine = 128;
+				//mat.ior = 1.76;
+				//mat.ior = 0;
+				//materials.push_back(mat);
 
-				int matId = materials.size() - 1;
+				
 
 				for (auto& mesh : meshes) {
+					Material mat;
+					mat.ambient = mesh.material.ambient * 0.1f;
+					mat.diffuse = mesh.material.diffuse;
+					mat.specular = mesh.material.specular;
+					mat.shine = mesh.material.shininess;
+					mat.ior = mesh.material.ior;
+					materials.push_back(mat);
+					int matId = materials.size() - 1;
+
 					if (mesh.hasIndices()) {
 						size_t size = mesh.indices.size() / 3;
 						for (size_t i = 0; i < size; i++) {
@@ -350,7 +363,7 @@ namespace obj {
 			send(uvs);
 		}
 
-		void buildBVH() {
+		void buildBVH(vector<Triangle>& triangles) {
 			using namespace ncl::ds;
 			vector<ncl::geom::bvh::Primitive> primitives;
 
@@ -399,8 +412,10 @@ namespace obj {
 		TextureBuffer* normals;
 		TextureBuffer* uvs;
 		vector<string> paths;
+		vector<string> paths_ls;
 		vector<vec4> pos;
 		vector<Triangle> triangles;
+		vector<Triangle> triangles_ls;
 		vector<Shading> shadings;
 		vector<Sphere> spheres;
 		vector<Plane> planes;
@@ -419,7 +434,10 @@ namespace obj {
 		int numNodes = 0;
 		geom::bvh::BVHBuildNode* BVH;
 		geom::bvh::BVH_SSO bvh_ssbo;
-		geom::bvh::BVH_TRI_INDEX bvh_index;
+		geom::bvh::BVH_TRI_INDEX bvh_index;		
+		geom::bvh::BVHBuildNode* BVH_LS;
+		geom::bvh::BVH_SSO bvh_ssbo_ls;
+		geom::bvh::BVH_TRI_INDEX bvh_ls_index;
 		vec3 min_point;
 
 	public:

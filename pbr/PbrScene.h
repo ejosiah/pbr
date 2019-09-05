@@ -21,6 +21,7 @@ public:
 	}
 
 	void init() override {
+		setForeGroundColor(BLUE);
 		sceneObjs = new obj::SceneObjects;
 		sceneObjs->init();
 		raytracer = new RayTracer(*this, *sceneObjs);

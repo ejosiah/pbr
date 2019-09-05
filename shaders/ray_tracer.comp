@@ -25,6 +25,8 @@ uniform float maxDepth;
 uniform bool fetchFromTexture = false;
 uniform int numNodes;
 
+#pragma include("hash.glsl")
+
 
 const vec2 resolution = vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
 const vec2 uv = 2 * vec2(gl_GlobalInvocationID.xy)/(resolution - vec2(1)) - vec2(1); // [-1, 1]
@@ -255,6 +257,11 @@ layout(std430, binding=9) buffer X_FORMS{
 	mat4 xforms[];
 };
 
+layout(std430, binding=10) buffer BVH_LS_SSBO{
+    BVHNode bvh_ls[];
+};
+
+
 vec4 trace(Ray ray, int depth);
 
 
@@ -264,7 +271,7 @@ void main(){
 
 	CameraSample csample;
 	csample.pFilm = vec2(pos); // + vec2(rng(vec2(pos.x, 0)), rng(vec2(pos.y, 0)));
-	csample.time = rng(pos);
+	csample.time = hash12(pos);
 
 	Ray ray;
 	generateRay(csample, camera, ray);

@@ -40,17 +40,6 @@ struct HitInfo {
 
 #pragma ignore(off)
 
-vec3 computePrimaryTexDir(vec3 n, vec3 p) {
-	vec3 a = cross(n, vec3(1, 0, 0));
-	vec3 b = cross(n, vec3(0, 0, 1));
-
-	vec3 max_ab = dot(a, a) < dot(b, b) ? b : a;
-
-	vec3 c = cross(n, vec3(0, 1, 0));
-
-	return normalize(dot(max_ab, max_ab) < dot(c, c) ? c : max_ab);
-}
-
 bool intersectPlane(Ray ray, Plane p, out HitInfo hit) {
 
 	float t = p.d - dot(p.n, ray.o);

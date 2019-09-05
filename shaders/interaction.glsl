@@ -137,7 +137,6 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		vec3 p = ray.o + ray.d * hit.t;
 		vec2 uv = s.uv0 * u + s.uv1 * v + s.uv2 * w;
 		vec3 n = s.n0 * u + s.n1 * v + s.n2 * w;
-		//n = normalize( cross(tri.b - tri.a, tri.c - tri.a));
 
 		interact.p = p;
 		interact.n = n;

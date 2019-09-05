@@ -19,6 +19,115 @@ uniform float far = 1000;
 uniform float maxDepth;
 uniform bool fetchFromTexture = false;
 uniform int numNodes;
+// Hash without Sine
+// Creative Commons Attribution-ShareAlike 4.0 International Public License
+// Created by David Hoskins.
+//----------------------------------------------------------------------------------------
+//  1 out, 1 in...
+float hash11(float p)
+{
+	p = fract(p * .1031);
+	p *= p + 33.33;
+	p *= p + p;
+	return fract(p);
+}
+//----------------------------------------------------------------------------------------
+//  1 out, 2 in...
+float hash12(vec2 p)
+{
+	vec3 p3 = fract(vec3(p.xyx) * .1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+//----------------------------------------------------------------------------------------
+//  1 out, 3 in...
+float hash13(vec3 p3)
+{
+	p3 = fract(p3 * .1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+//----------------------------------------------------------------------------------------
+//  2 out, 1 in...
+vec2 hash21(float p)
+{
+	vec3 p3 = fract(vec3(p) * vec3(.1031, .1030, .0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.xx + p3.yz) * p3.zy);
+}
+//----------------------------------------------------------------------------------------
+///  2 out, 2 in...
+vec2 hash22(vec2 p)
+{
+	vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.xx + p3.yz) * p3.zy);
+}
+//----------------------------------------------------------------------------------------
+///  2 out, 3 in...
+vec2 hash23(vec3 p3)
+{
+	p3 = fract(p3 * vec3(.1031, .1030, .0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.xx + p3.yz) * p3.zy);
+}
+//----------------------------------------------------------------------------------------
+//  3 out, 1 in...
+vec3 hash31(float p)
+{
+	vec3 p3 = fract(vec3(p) * vec3(.1031, .1030, .0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.xxy + p3.yzz) * p3.zyx);
+}
+//----------------------------------------------------------------------------------------
+///  3 out, 2 in...
+vec3 hash32(vec2 p)
+{
+	vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
+	p3 += dot(p3, p3.yxz + 33.33);
+	return fract((p3.xxy + p3.yzz) * p3.zyx);
+}
+//----------------------------------------------------------------------------------------
+///  3 out, 3 in...
+vec3 hash33(vec3 p3)
+{
+	p3 = fract(p3 * vec3(.1031, .1030, .0973));
+	p3 += dot(p3, p3.yxz + 33.33);
+	return fract((p3.xxy + p3.yxx) * p3.zyx);
+}
+//----------------------------------------------------------------------------------------
+// 4 out, 1 in...
+vec4 hash41(float p)
+{
+	vec4 p4 = fract(vec4(p) * vec4(.1031, .1030, .0973, .1099));
+	p4 += dot(p4, p4.wzxy + 33.33);
+	return fract((p4.xxyz + p4.yzzw) * p4.zywx);
+}
+//----------------------------------------------------------------------------------------
+// 4 out, 2 in...
+vec4 hash42(vec2 p)
+{
+	vec4 p4 = fract(vec4(p.xyxy) * vec4(.1031, .1030, .0973, .1099));
+	p4 += dot(p4, p4.wzxy + 33.33);
+	return fract((p4.xxyz + p4.yzzw) * p4.zywx);
+}
+//----------------------------------------------------------------------------------------
+// 4 out, 3 in...
+vec4 hash43(vec3 p)
+{
+	vec4 p4 = fract(vec4(p.xyzx) * vec4(.1031, .1030, .0973, .1099));
+	p4 += dot(p4, p4.wzxy + 33.33);
+	return fract((p4.xxyz + p4.yzzw) * p4.zywx);
+}
+//----------------------------------------------------------------------------------------
+// 4 out, 4 in...
+vec4 hash44(vec4 p4)
+{
+	p4 = fract(p4 * vec4(.1031, .1030, .0973, .1099));
+	p4 += dot(p4, p4.wzxy + 33.33);
+	return fract((p4.xxyz + p4.yzzw) * p4.zywx);
+}
+
 const vec2 resolution = vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
 const vec2 uv = 2 * vec2(gl_GlobalInvocationID.xy)/(resolution - vec2(1)) - vec2(1); // [-1, 1]
 const int SPHERE_SHAPE = 0;
@@ -211,12 +320,15 @@ layout(std430, binding=8) buffer PLANE_SSB0{
 layout(std430, binding=9) buffer X_FORMS{
 	mat4 xforms[];
 };
+layout(std430, binding=10) buffer BVH_LS_SSBO{
+    BVHNode bvh_ls[];
+};
 vec4 trace(Ray ray, int depth);
 void main(){
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 	CameraSample csample;
 	csample.pFilm = vec2(pos); // + vec2(rng(vec2(pos.x, 0)), rng(vec2(pos.y, 0)));
-	csample.time = rng(pos);
+	csample.time = hash12(pos);
 	Ray ray;
 	generateRay(csample, camera, ray);
 	imageStore(image, pos, trace(ray, 0));
@@ -523,13 +635,6 @@ bool intersectCylinder(Ray ray, Cylinder cylin, out HitInfo hit) {
 	return true;
 }
 
-vec3 computePrimaryTexDir(vec3 n, vec3 p) {
-	vec3 a = cross(n, vec3(1, 0, 0));
-	vec3 b = cross(n, vec3(0, 0, 1));
-	vec3 max_ab = dot(a, a) < dot(b, b) ? b : a;
-	vec3 c = cross(n, vec3(0, 1, 0));
-	return normalize(dot(max_ab, max_ab) < dot(c, c) ? c : max_ab);
-}
 bool intersectPlane(Ray ray, Plane p, out HitInfo hit) {
 	float t = p.d - dot(p.n, ray.o);
 	t /= dot(p.n, ray.d);
@@ -744,7 +849,6 @@ void intialize(HitInfo hit, Ray ray, out SurfaceInteration interact) {
 		vec3 p = ray.o + ray.d * hit.t;
 		vec2 uv = s.uv0 * u + s.uv1 * v + s.uv2 * w;
 		vec3 n = s.n0 * u + s.n1 * v + s.n2 * w;
-		//n = normalize( cross(tri.b - tri.a, tri.c - tri.a));
 		interact.p = p;
 		interact.n = n;
 		interact.uv = uv;
