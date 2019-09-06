@@ -114,7 +114,7 @@ namespace obj {
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\blocks\\blocks.obj");
 			//	paths.push_back("C:\\Users\\Josiah\\OneDrive\\media\\models\\Armadillo.obj");
 
-			paths_ls.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\lte-orb\\lte-orb-005.obj");
+			paths_lr.push_back("C:\\Users\\" + username + "\\OneDrive\\media\\models\\lte-orb\\lte-orb-005.obj");
 
 			Material m;
 			m.ambient = { 1, 1, 1, 1 };
@@ -137,7 +137,7 @@ namespace obj {
 			spheres.push_back(s);
 
 			initializeTriangles(paths, triangles);
-			initializeTriangles(paths_ls, triangles_ls);
+			initializeTriangles(paths_lr, triangles_lr);
 
 			Plane plane;
 			plane.n = { 0, 1, 0 };
@@ -150,7 +150,8 @@ namespace obj {
 			m.ior = 0;
 			materials.push_back(m);
 
-			buildBVH(triangles);
+			buildBVH(triangles, bvh_index, bvh_ssbo, true);
+			buildBVH(triangles_lr, bvh_index_lr, bvh_ssbo_lr);
 
 			initialize(sphereId, 1, sizeof(Sphere) * spheres.size());
 			initialize(triangleBuffer, 2, sizeof(Triangle) * triangles.size());
@@ -160,6 +161,9 @@ namespace obj {
 			initialize(materialId, 7, sizeof(Material) * materials.size());
 			initialize(planeBuffer, 8, sizeof(Plane) * planes.size());
 
+			initialize(triangleBuffer_lr, 10, sizeof(Triangle) * triangles_lr.size());
+			initialize(bvh_id_lr, 11, sizeof(geom::bvh::LinearBVHNode) * bvh_ssbo_lr.nodes.size());
+			initialize(bvh_index_id_lr, 12, sizeof(int) * bvh_index_lr.data.size());
 		}
 
 		void initializeTriangles(vector<string>& paths, vector<Triangle>& triangles) {
@@ -363,7 +367,7 @@ namespace obj {
 			send(uvs);
 		}
 
-		void buildBVH(vector<Triangle>& triangles) {
+		void buildBVH(vector<Triangle>& triangles, geom::bvh::BVH_TRI_INDEX& bvh_index, geom::bvh::BVH_SSO& bvh_ssbo, bool updateStats = false) {
 			using namespace ncl::ds;
 			vector<ncl::geom::bvh::Primitive> primitives;
 
@@ -386,24 +390,26 @@ namespace obj {
 			BVH = bvhBuilder.root;
 
 
-			stats.height = ds::tree::height(root);
-			stats.nodes = 0;
+			if (updateStats) {
+				stats.height = ds::tree::height(root);
+				stats.nodes = 0;
 
-			auto bvh_min = ds::tree::min(root);
-			auto bvh_max = ds::tree::max(root);
+				auto bvh_min = ds::tree::min(root);
+				auto bvh_max = ds::tree::max(root);
 
-			Mesh m;
-			int total = 0;
-			ds::tree::traverse(BVH, [&](geom::bvh::BVHBuildNode* n) {
-				numNodes++;
-				if (n->isLeaf()) {
-					stats.nodes++;
-					vec4 color = n->leftChild ? CYAN : MAGENTA;
-					stats.size = (stats.size + n->nPrimitives);
-					total++;
-				}
-			}, ds::tree::TraverseType::IN_ORDER);
-			stats.size = stats.size / total;
+				Mesh m;
+				int total = 0;
+				ds::tree::traverse(BVH, [&](geom::bvh::BVHBuildNode* n) {
+					numNodes++;
+					if (n->isLeaf()) {
+						stats.nodes++;
+						vec4 color = n->leftChild ? CYAN : MAGENTA;
+						stats.size = (stats.size + n->nPrimitives);
+						total++;
+					}
+					}, ds::tree::TraverseType::IN_ORDER);
+				stats.size = stats.size / total;
+			}
 
 		}
 
@@ -412,10 +418,10 @@ namespace obj {
 		TextureBuffer* normals;
 		TextureBuffer* uvs;
 		vector<string> paths;
-		vector<string> paths_ls;
+		vector<string> paths_lr;
 		vector<vec4> pos;
 		vector<Triangle> triangles;
-		vector<Triangle> triangles_ls;
+		vector<Triangle> triangles_lr;
 		vector<Shading> shadings;
 		vector<Sphere> spheres;
 		vector<Plane> planes;
@@ -428,6 +434,10 @@ namespace obj {
 		GLuint bvh_id;
 		GLuint bvh_index_id;
 
+		GLuint bvh_id_lr;
+		GLuint bvh_index_id_lr;
+		GLuint triangleBuffer_lr;
+
 		MeshLoader loader;
 		MeshNormalizer normalizer;
 		float maxDepth;
@@ -435,9 +445,9 @@ namespace obj {
 		geom::bvh::BVHBuildNode* BVH;
 		geom::bvh::BVH_SSO bvh_ssbo;
 		geom::bvh::BVH_TRI_INDEX bvh_index;		
-		geom::bvh::BVHBuildNode* BVH_LS;
-		geom::bvh::BVH_SSO bvh_ssbo_ls;
-		geom::bvh::BVH_TRI_INDEX bvh_ls_index;
+		geom::bvh::BVHBuildNode* BVH_LR;
+		geom::bvh::BVH_SSO bvh_ssbo_lr;
+		geom::bvh::BVH_TRI_INDEX bvh_index_lr;
 		vec3 min_point;
 
 	public:

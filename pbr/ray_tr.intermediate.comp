@@ -19,6 +19,7 @@ uniform float far = 1000;
 uniform float maxDepth;
 uniform bool fetchFromTexture = false;
 uniform int numNodes;
+uniform bool useLowPoly = false;
 // Hash without Sine
 // Creative Commons Attribution-ShareAlike 4.0 International Public License
 // Created by David Hoskins.
@@ -320,8 +321,14 @@ layout(std430, binding=8) buffer PLANE_SSB0{
 layout(std430, binding=9) buffer X_FORMS{
 	mat4 xforms[];
 };
-layout(std430, binding=10) buffer BVH_LS_SSBO{
+layout(std430, binding=10) buffer TRIANGLE_LS_SSB0{
+	Triangle triangle_ls[];
+};
+layout(std430, binding=11) buffer BVH_LS_SSBO{
     BVHNode bvh_ls[];
+};
+layout(std430, binding=12) buffer BVH_TRI_INDEX_LS_SSBO{
+    int index_LS[];
 };
 vec4 trace(Ray ray, int depth);
 void main(){
