@@ -114,11 +114,11 @@ bool negativeDir(Ray ray, int axis) {
 }
 
 
-bool intersectsTriangle(Ray ray, out HitInfo hit) {
+bool intersectsTriangle(Ray ray, out HitInfo hit, int rootIdx) {
 	HitInfo lHit;
 
 	bool aHit = false;
-	int toVisitOffset = 0, currentNodeIndex = 0;
+	int toVisitOffset = 0, currentNodeIndex = rootIdx;
 	int nodesToVisit[64];
 
 	while (!aHit) {

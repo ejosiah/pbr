@@ -129,6 +129,7 @@
     <ClInclude Include="RayTracer.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\shaders\bsdf.glsl" />
     <None Include="..\shaders\bvh.glsl" />
     <None Include="..\shaders\camera.glsl" />
     <None Include="..\shaders\cylinder.glsl" />

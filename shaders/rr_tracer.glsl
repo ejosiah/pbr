@@ -187,7 +187,7 @@ void fetchTriangle(int id, out Triangle tri);
 
 bool intersectSphere(Ray ray, Sphere s, out HitInfo hit);
 
-bool intersectsTriangle(Ray ray, out HitInfo hit);
+bool intersectsTriangle(Ray ray, out HitInfo hit, int bvh_root);
 
 bool triangleRayIntersect(Ray ray, Triangle tri, out float t, out float u, out float v, out float w);
 
@@ -219,8 +219,6 @@ float ro(float n);
 
 float fresnel(float n, float cos0);
 
-const int numSpheres = 0;
-
 bool anyHit(Ray ray){
 	HitInfo local_hit;
 	local_hit.t = ray.tMax;
@@ -232,7 +230,8 @@ bool anyHit(Ray ray){
 	}
 
 	local_hit.t = ray.tMax;
-	if (intersectsTriangle(ray, local_hit)) {
+	int bvh_root = useLowPoly ? lowPolyRoot : 0;
+	if (intersectsTriangle(ray, local_hit, bvh_root)) {
 		return true;
 	}
 
@@ -259,7 +258,7 @@ bool intersectScene(Ray ray, out HitInfo hit) {
 	}
 	
 	local_hit.t = hit.t;
-	if (intersectsTriangle(ray, local_hit)) {
+	if (intersectsTriangle(ray, local_hit, 0)) {
 		aHit = true;
 		if (local_hit.t < hit.t) {
 			hit = local_hit;
@@ -346,12 +345,13 @@ vec4 trace(Ray ray, int depth) {
 }
 
 vec4 shade(SurfaceInteration interact, int depth) {
+	vec3 eyes = (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz;
 	vec3 p = interact.p;
 	vec3 n = interact.n;
 	vec3 I = vec3(1);
 	vec4 l = vec4(0, 10, 10, 1);
 	vec3 wi = normalize( l.xyz - p);
-	vec3 wo = normalize( (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz );
+	vec3 wo = normalize( eyes - p);
 	vec3 h = normalize(wi + wo);
 
 	vec3 ka = vec3(0);
@@ -373,8 +373,10 @@ vec4 shade(SurfaceInteration interact, int depth) {
 		f = 20.0;
 	}
 
+	float wi_dot_n = dot(wi, n);
+
 	vec3 Li = ka * vec3(0.3) + I * ka;
-	Li += I * max(0, dot(wi, n)) * kd;
+	Li += I * max(0, wi_dot_n) * kd;
 	Li += I * max(0, pow(dot(n, h), f)) * ks;
 
 	Ray shadow_ray;
@@ -382,7 +384,7 @@ vec4 shade(SurfaceInteration interact, int depth) {
 	shadow_ray.d = wi;
 	shadow_ray.tMax = 1000;
 	
-	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
+	return wi_dot_n > 0 && anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
 //	return vec4(Li, 1);
 }
 

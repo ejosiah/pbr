@@ -20,6 +20,8 @@ uniform float maxDepth;
 uniform bool fetchFromTexture = false;
 uniform int numNodes;
 uniform bool useLowPoly = false;
+uniform int lowPolyRoot;
+uniform int numSpheres = 0;
 // Hash without Sine
 // Creative Commons Attribution-ShareAlike 4.0 International Public License
 // Created by David Hoskins.
@@ -385,7 +387,7 @@ void fetchShading(int id, out Triangle tri, out Shading s);
 bool intersectBVH(Ray ray, out HitInfo hit);
 void fetchTriangle(int id, out Triangle tri);
 bool intersectSphere(Ray ray, Sphere s, out HitInfo hit);
-bool intersectsTriangle(Ray ray, out HitInfo hit);
+bool intersectsTriangle(Ray ray, out HitInfo hit, int bvh_root);
 bool triangleRayIntersect(Ray ray, Triangle tri, out float t, out float u, out float v, out float w);
 bool intersectPlane(Ray ray, Plane p, out HitInfo hit);
 bool intersectCylinder(Ray ray, Cylinder cylin, out HitInfo hit);
@@ -401,7 +403,6 @@ vec3 getNormal(Ray ray, HitInfo hit);
 vec3 getPosition(Ray ray, HitInfo hit);
 float ro(float n);
 float fresnel(float n, float cos0);
-const int numSpheres = 0;
 bool anyHit(Ray ray){
 	HitInfo local_hit;
 	local_hit.t = ray.tMax;
@@ -412,7 +413,8 @@ bool anyHit(Ray ray){
 		}
 	}
 	local_hit.t = ray.tMax;
-	if (intersectsTriangle(ray, local_hit)) {
+	int bvh_root = useLowPoly ? lowPolyRoot : 0;
+	if (intersectsTriangle(ray, local_hit, bvh_root)) {
 		return true;
 	}
 	local_hit.t = ray.tMax;
@@ -437,7 +439,7 @@ bool intersectScene(Ray ray, out HitInfo hit) {
 	}
 	
 	local_hit.t = hit.t;
-	if (intersectsTriangle(ray, local_hit)) {
+	if (intersectsTriangle(ray, local_hit, 0)) {
 		aHit = true;
 		if (local_hit.t < hit.t) {
 			hit = local_hit;
@@ -507,13 +509,15 @@ vec4 trace(Ray ray, int depth) {
 	return doIntersect(ray, interact);
 }
 vec4 shade(SurfaceInteration interact, int depth) {
+	vec3 eyes = (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz;
 	vec3 p = interact.p;
 	vec3 n = interact.n;
 	vec3 I = vec3(1);
 	vec4 l = vec4(0, 10, 10, 1);
 	vec3 wi = normalize( l.xyz - p);
-	vec3 wo = normalize( (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz );
-	vec3 h = normalize(wi + wo);
+	vec3 wo = normalize( eyes - p);
+	//vec3 h = normalize(wi + wo);
+	vec3 h = reflect(-wi, n);
 	vec3 ka = vec3(0);
 	vec3 kd = interact.color.xyz;
 	vec3 ks = I;
@@ -531,15 +535,16 @@ vec4 shade(SurfaceInteration interact, int depth) {
 		ks = vec3(0);
 		f = 20.0;
 	}
+	float wi_dot_n = dot(wi, n);
 	vec3 Li = ka * vec3(0.3) + I * ka;
-	Li += I * max(0, dot(wi, n)) * kd;
+	Li += I * max(0, wi_dot_n) * kd;
 	Li += I * max(0, pow(dot(n, h), f)) * ks;
 	Ray shadow_ray;
 	shadow_ray.o = p + wi * 0.01;
 	shadow_ray.d = wi;
 	shadow_ray.tMax = 1000;
 	
-	return anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
+	return wi_dot_n > 0 && anyHit(shadow_ray) ? mix(vec4(Li, 1), vec4(0), 0.7) : vec4(Li, 1);
 //	return vec4(Li, 1);
 }
 float ro(float n) {
@@ -709,10 +714,10 @@ bool intersect(Ray ray, int offset, int size, out HitInfo hit) {
 bool negativeDir(Ray ray, int axis) {
 	return (1 / ray.d[axis]) < 0;
 }
-bool intersectsTriangle(Ray ray, out HitInfo hit) {
+bool intersectsTriangle(Ray ray, out HitInfo hit, int rootIdx) {
 	HitInfo lHit;
 	bool aHit = false;
-	int toVisitOffset = 0, currentNodeIndex = 0;
+	int toVisitOffset = 0, currentNodeIndex = rootIdx;
 	int nodesToVisit[64];
 	while (!aHit) {
 		BVHNode node = getNode(currentNodeIndex);

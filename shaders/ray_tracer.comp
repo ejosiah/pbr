@@ -25,6 +25,8 @@ uniform float maxDepth;
 uniform bool fetchFromTexture = false;
 uniform int numNodes;
 uniform bool useLowPoly = false;
+uniform int lowPolyRoot;
+uniform int numSpheres = 0;
 
 #pragma include("hash.glsl")
 
