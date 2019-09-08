@@ -1,4 +1,6 @@
 #version 450 core
+
+#extension GL_EXT_gpu_shader4 : enable
 #pragma debug(on)
 #pragma optimize(off)
 
@@ -75,7 +77,7 @@ struct Material {
 	vec4 kt;
 	float shine;
 	float ior;
-	float bsdf;
+	int bsdf;
 };
 
 struct Cylinder {

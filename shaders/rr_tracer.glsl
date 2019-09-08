@@ -20,8 +20,11 @@ struct Material {
 	vec4 ambient;
 	vec4 diffuse;
 	vec4 specular;
+	vec4 kr;
+	vec4 kt;
 	float shine;
 	float ior;
+	int bsdf;
 };
 
 struct Sphere {
@@ -215,9 +218,14 @@ vec3 getNormal(Ray ray, HitInfo hit);
 
 vec3 getPosition(Ray ray, HitInfo hit);
 
-float ro(float n);
+//************** BSDF ***********************************************/
+vec3 f(vec3 woW, vec3 wiW, int type, SurfaceInteration interact);
 
-float fresnel(float n, float cos0);
+vec3 Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration intaract);
+
+float Pdf(vec3 wo, vec3 wi, int type);
+
+//******************************************************************
 
 bool anyHit(Ray ray){
 	HitInfo local_hit;
@@ -388,16 +396,6 @@ vec4 shade(SurfaceInteration interact, int depth) {
 //	return vec4(Li, 1);
 }
 
-float ro(float n) {
-	return ((n - 1) * (n - 1)) / ((n + 1) * (n + 1));
-}
-
-float fresnel(float n, float cos0) {
-	float R0 = ro(n);
-	return R0 + (1 - R0) * pow((1 - cos0), 5);
-}
-
-
 #pragma include("quadratic.glsl")
 #pragma include("sphere.glsl")
 #pragma include("cylinder.glsl")
@@ -406,3 +404,4 @@ float fresnel(float n, float cos0) {
 #pragma include("interaction.glsl")
 #pragma include("light.glsl")
 #pragma include("sphericalCS.glsl")
+#pragma include("reflection.glsl")

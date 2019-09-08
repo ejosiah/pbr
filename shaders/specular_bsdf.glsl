@@ -67,7 +67,7 @@ vec3 SpecularReflection_Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, Su
 */
 
 	wi = reflect(-wo, intaract.n);
-	pdf = 0.1;
+	pdf = 1.0;
 
 	Material m = material[intaract.matId];
 
