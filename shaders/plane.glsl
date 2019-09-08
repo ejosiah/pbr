@@ -3,6 +3,7 @@ struct Plane {
 	vec3 n;
 	float d;
 	int id;
+	int matId;
 };
 
 struct Ray {
@@ -25,6 +26,8 @@ struct SurfaceInteration {
 	vec2 uv;
 	vec3 dpdu;
 	vec3 dpdv;
+	int objId;
+	int objType;
 };
 
 struct HitInfo {
@@ -42,7 +45,7 @@ bool intersectPlane(Ray ray, Plane p, out HitInfo hit) {
 	float t = p.d - dot(p.n, ray.o);
 	t /= dot(p.n, ray.d);
 
-	if (t < 0 || t > 10 || t > ray.tMax) {
+	if (t < 0 || t > ray.tMax) {
 		return false;
 	}
 	hit.t = t;

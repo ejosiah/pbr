@@ -55,7 +55,7 @@ bool intersectSphere(Ray ray, Sphere s, out HitInfo hit) {
 	float b = dot(m, ray.d);
 	float c = dot(m, m) - s.r * s.r;
 
-	if (c > 0.0f && b > 0.0f) return false;
+	if (c > 0.0 && b > 0.0) return false;
 
 	float discr = b * b - a * c;
 
@@ -67,14 +67,14 @@ bool intersectSphere(Ray ray, Sphere s, out HitInfo hit) {
 	if (t0 > t1) swap(t0, t1);
 
 	float tHit = t0;
-	if (tHit <= 0) tHit = t1;
+	if (tHit <= 0.0) tHit = t1;
 	if (tHit > r.tMax) return false;
 
 	vec3 p = r.o + r.d * tHit;
 	p *= s.r / distance(p, s.c);
 	if (p.x == 0 && p.z == 0) p.x = 1E-5 * s.r;
 	float phi = atan(p.z, p.x);
-	if (phi < 0) phi += TWO_PI;
+	if (phi < 0.0) phi += TWO_PI;
 
 	if ((s.yMin > -s.r && p.y < s.yMin) || (s.yMax < s.r && p.y > s.yMax) || phi > s.phiMax) {
 		if (tHit == t1) return false;
@@ -83,9 +83,9 @@ bool intersectSphere(Ray ray, Sphere s, out HitInfo hit) {
 		tHit = t1;
 		p = r.o + r.d * tHit;
 		p *= s.r / distance(p, s.c);
-		if (p.x == 0 && p.z == 0) p.x = 1E-5 * s.r;
+		if (p.x == 0.0 && p.z == 0.0) p.x = 1E-5 * s.r;
 		float phi = atan(p.z, p.x);
-		if (phi < 0) phi += TWO_PI;
+		if (phi < 0.0) phi += TWO_PI;
 
 		if ((s.yMin > -s.r && p.y < s.yMin)
 			|| (s.yMax < s.r && p.y > s.yMax)

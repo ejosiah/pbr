@@ -24,6 +24,11 @@ uniform float far = 1000;
 uniform float maxDepth;
 uniform bool fetchFromTexture = false;
 uniform int numNodes;
+uniform bool useLowPoly = false;
+uniform int lowPolyRoot;
+uniform int numSpheres = 0;
+
+#pragma include("hash.glsl")
 
 
 const vec2 resolution = vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
@@ -35,10 +40,11 @@ const int BOX = 2;
 const int TRIANGLE = 3;
 const int PLANE = 4;
 
-struct Plane{
+struct Plane {
 	vec3 n;
 	float d;
 	int id;
+	int matId;
 };
 
 struct Box{
@@ -65,8 +71,11 @@ struct Material {
 	vec4 ambient;
 	vec4 diffuse;
 	vec4 specular;
+	vec4 kr;
+	vec4 kt;
 	float shine;
 	float ior;
+	float bsdf;
 };
 
 struct Cylinder {
@@ -145,8 +154,13 @@ struct SurfaceInteration{
 	vec2 uv;
 	vec3 dpdu;
 	vec3 dpdv;
+	vec3 sn;
+	vec3 st;
+	vec3 sb;
 	vec4 color;
 	int matId;
+	int shape;
+	int shapeId;
 };
 
 struct HitInfo{
@@ -244,6 +258,27 @@ layout(std430, binding=7) buffer MATERIAL_SSB0{
 	Material material[];
 };
 
+layout(std430, binding=8) buffer PLANE_SSB0{
+	Plane plane[];
+};
+
+layout(std430, binding=9) buffer X_FORMS{
+	mat4 xforms[];
+};
+
+layout(std430, binding=10) buffer TRIANGLE_LS_SSB0{
+	Triangle triangle_ls[];
+};
+
+layout(std430, binding=11) buffer BVH_LS_SSBO{
+    BVHNode bvh_ls[];
+};
+
+layout(std430, binding=12) buffer BVH_TRI_INDEX_LS_SSBO{
+    int index_LS[];
+};
+
+
 vec4 trace(Ray ray, int depth);
 
 
@@ -253,7 +288,7 @@ void main(){
 
 	CameraSample csample;
 	csample.pFilm = vec2(pos); // + vec2(rng(vec2(pos.x, 0)), rng(vec2(pos.y, 0)));
-	csample.time = rng(pos);
+	csample.time = hash12(pos);
 
 	Ray ray;
 	generateRay(csample, camera, ray);

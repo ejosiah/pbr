@@ -94,5 +94,14 @@
     <None Include="..\shaders\tree.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\shaders\hash.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\reflection.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\specular_bsdf.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

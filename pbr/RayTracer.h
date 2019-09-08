@@ -49,7 +49,7 @@ public:
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(camera), NULL, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, camera_ssbo_id);
 
-		checkerboard = new CheckerBoard_gpu(255, 255, WHITE, BLACK, 1, "checker");
+		checkerboard = new CheckerBoard_gpu(255, 255, WHITE, GRAY, 1, "checker");
 		checkerboard->compute();
 		checkerboard->images().front().renderMode();
 	}
