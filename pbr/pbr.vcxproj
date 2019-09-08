@@ -129,6 +129,7 @@
     <ClInclude Include="RayTracer.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\shaders\lambertian_bsdf.glsl" />
     <None Include="..\shaders\reflection.glsl" />
     <None Include="..\shaders\bvh.glsl" />
     <None Include="..\shaders\camera.glsl" />
@@ -145,6 +146,7 @@
     <None Include="..\shaders\render.vert" />
     <None Include="..\shaders\rr_tracer.glsl" />
     <None Include="..\shaders\sampler.glsl" />
+    <None Include="..\shaders\sampling.glsl" />
     <None Include="..\shaders\specular_bsdf.glsl" />
     <None Include="..\shaders\sphere.glsl" />
     <None Include="..\shaders\sphericalCS.glsl" />

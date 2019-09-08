@@ -103,5 +103,11 @@
     <None Include="..\shaders\specular_bsdf.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\shaders\lambertian_bsdf.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\sampling.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
