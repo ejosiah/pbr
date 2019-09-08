@@ -24,7 +24,7 @@ struct Material {
 	vec4 kt;
 	float shine;
 	float ior;
-	int bsdf;
+	int bsdf[16];
 };
 
 struct Sphere {
@@ -110,15 +110,19 @@ struct Ray {
 
 };
 
-struct SurfaceInteration {
+struct SurfaceInteration{
 	vec3 n;
 	vec3 p;
 	vec2 uv;
 	vec3 dpdu;
 	vec3 dpdv;
+	vec3 sn;
+	vec3 st;
+	vec3 sb;
+	vec4 color;
 	int matId;
-	int objId;
-	int objType;
+	int shape;
+	int shapeId;
 };
 
 struct HitInfo {
@@ -331,15 +335,40 @@ bool isNull(int node){
 }
 
 vec4 doIntersect(Ray ray, out SurfaceInteration interact){
-	HitInfo hit;
-	if (intersectScene(ray, hit)) {
-		intialize(hit, ray, interact);
-		return shade(interact, 0);
+	
+//	if (intersectScene(ray, hit)) {
+//		intialize(hit, ray, interact);
+//		return shade(interact, 0);
+//	}
+//	else {
+//		interact.matId = -1;
+//		return texture(skybox, ray.d);
+//	}
+
+	vec3 color = vec3(0);
+	vec3 f = vec3(1);
+	Ray r = ray;
+	for(int i = 0; i < MAX_BOUNCES; i++){
+		HitInfo hit;
+		if (intersectScene(r, hit)){
+			intialize(hit, ray, interact);;
+			if(interact.shape == PLANE){
+				color += f * shade(interact, 0).xyz;
+				break;
+			}else{
+				vec3 wi;
+				vec3 wo = (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz;
+				float pdf;
+				f *= Sample_f(wo, wi, vec2(0), pdf, interact);
+				r.o = interact.p + vec3(0.01);
+				r.d = wi;
+			}
+		}{
+			color += texture(skybox, r.d).xyz;
+			break;
+		}
 	}
-	else {
-		interact.matId = -1;
-		return texture(skybox, ray.d);
-	}
+	return vec4(color, 1.0);
 }
 
 vec4 trace(Ray ray, int depth) {

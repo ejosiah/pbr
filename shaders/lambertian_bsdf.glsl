@@ -1,8 +1,10 @@
+#pragma once
 
 
 #pragma ignore(on)
 
 #extension GL_EXT_gpu_shader4 : enable
+#define INV_PI				  0.31830988618379067153776752674503
 
 struct SurfaceInteration{
 	vec3 n;
@@ -43,6 +45,10 @@ const int FRESNEL_NOOP = 1 << 0;
 const int FRESNEL_DIELECTRIC  = 1 << 1;
 const int FRESNEL_CONDOCTOR = 1 << 2;
 
+vec3 cosineSampleHemisphere(vec2 u);
+float absCosTheta(vec3 w);
+
+
 #pragma ignore(off)
 
 /*
@@ -54,26 +60,20 @@ const int FRESNEL_CONDOCTOR = 1 << 2;
 	float Pdf(vec3 wi, vec3 wo);
 */
 
-vec3 SpecularReflection_f(vec3 wo, vec3 wi) {
-	return vec3(0);
+float LambertianReflection_Pdf(vec3 wi, vec3 wo){
+	return dot(wi, wo) > 0.0 ? absCosTheta(wi) * INV_PI : 0.0;
 }
 
-vec3 SpecularReflection_Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration intaract) {
-/*
-	not yet using reflection coordinate system 	
-	wi.x = -wo.x;
-	wi.z = -wo.z;
-	wi.y = wo.y;
-*/
-
-	wi = reflect(-wo, intaract.n);
-	pdf = 1.0;
-
-	Material m = material[intaract.matId];
-
-	return m.kr.xyz *  fresnel(vec3(0), vec3(0), vec3(0), 0.0, FRESNEL_NOOP);
+vec3 LambertianReflection_f(vec3 wo, vec3 wi, SurfaceInteration interact) {
+	vec3 R = material[interact.matId].kr.xyz;
+	return R * INV_PI;
 }
 
-float SpecularReflection_Pdf(vec3 wi, vec3 wo){
-	return 0.0;
+vec3 LambertianReflection_Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration interact) {
+	
+	wi = cosineSampleHemisphere(u);
+	if(wo.z < 0.0) wi.y *= -1.0;
+	pdf = LambertianReflection_Pdf(wo, wi);
+
+	return LambertianReflection_f(wo, wi, interact);
 }

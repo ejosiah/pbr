@@ -20,14 +20,14 @@ struct Material {
 	vec4 kt;
 	float shine;
 	float ior;
-	int bsdf;
+	int bsdf[16];
 };
 
 
 Material material[10];
 
 vec3 SpecularReflection_f(vec3 wo, vec3 wi)
-vec3 SpecularReflection_Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration intaract);
+vec3 SpecularReflection_Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration interact);
 float SpecularReflection_Pdf(vec3 wi, vec3 wo);
 void swap(inout float a, inout float b);
 #pragma ignore(off)
@@ -47,6 +47,7 @@ const int BSDF_SPECULAR = 1 << 4;
 const int BSDF_ALL = BSDF_DIFFUSE | BSDF_GLOSSY | BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION;
 
 const int SPECIULAR_REFLECT = BSDF_REFLECTION | BSDF_SPECULAR;
+const int LAMBERTIAN_REFLECT = BSDF_REFLECTION | BSDF_DIFFUSE;
 
 const int FRESNEL_NOOP = 1 << 0;
 const int FRESNEL_DIELECTRIC  = 1 << 1;
@@ -148,11 +149,11 @@ vec3 fresnel(vec3 ni, vec3 nt, vec3 k, float cos0i, int type){
 	}
 }
 
-vec3 bsdf_worldToLocal(vec3 v, SurfaceInteration intaract){
+vec3 bsdf_worldToLocal(vec3 v, SurfaceInteration interact){
 	return v;
 }
 
-vec3 bsdf_localToWorld(vec3 v, SurfaceInteration intaract){
+vec3 bsdf_localToWorld(vec3 v, SurfaceInteration interact){
 	return v;
 }
 
@@ -160,14 +161,14 @@ vec3 bsdf_localToWorld(vec3 v, SurfaceInteration intaract){
 /*
 	bool matchesFlag(int type);
 	vec3 f(vec3 wo, vec3 wi);
-	vec3 sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, int type, SurfaceInteration intaract);
+	vec3 sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, int type, SurfaceInteration interact);
 	vec3 rho(vec3 wo, int nSamples);
 	vec3 rho1(int nSamples);
 	float Pdf(vec3 wi, vec3 wo);
 */
 
 bool matchesFlag(int expectedTypes, int actualTypes){
-	return (expectedTypes & actualTypes) == actualTypes;
+	return (expectedTypes & actualTypes) > 0;
 }
 
 #pragma include("specular_bsdf.glsl")
@@ -176,20 +177,27 @@ vec3 f(vec3 woW, vec3 wiW, int type, SurfaceInteration interact){
 	vec3 wi = bsdf_worldToLocal(wiW, interact);
 	vec3 wo = bsdf_worldToLocal(woW, interact);
 
-//	bool canReflect = dot(wiW, interact.n) * dot(woW, interact.n) > 0.0;
-//	vec3 rtVal = vec3(0);
-//	Material m = material[interact.matId];
-//	if(matchesFlag(type, m.bsdf) && (canReflect && matchesFlag(BSDF_REFLECTION, m.bsdf))
-//		|| (!canReflect && matchesFlag(BSDF_TRANSMISSION, m.bsdf))
-//	){
-//		rtVal += SpecularReflection_Sample_f(wi, wo, interact);
-//	}
-//
-	return SpecularReflection_f(wi, wo);
+	bool canReflect = dot(wiW, interact.n) * dot(woW, interact.n) > 0.0;
+	vec3 rtVal = vec3(0);
+	Material m = material[interact.matId];
+	int bsdf = m.bsdf[0];
+	if(matchesFlag(type, bsdf) && (canReflect && matchesFlag(BSDF_REFLECTION, bsdf))
+		|| (!canReflect && matchesFlag(BSDF_TRANSMISSION, bsdf))
+	){
+		rtVal += SpecularReflection_f(wi, wo);
+	}
+
+	return rtVal;
 }
 
-vec3 Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration intaract){
-	return SpecularReflection_Sample_f(wo, wi, u, pdf, intaract);
+vec3 Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration interact){
+	Material m = material[interact.matId];
+	int bsdf = m.bsdf[1];
+	if(matchesFlag(BSDF_REFLECTION, bsdf)){
+		return SpecularReflection_Sample_f(wo, wi, u, pdf, interact);
+	}else{
+		return vec3(0);
+	}
 }
 
 float Pdf(vec3 wo, vec3 wi, int type){

@@ -28,6 +28,9 @@ namespace obj {
 	static const int BSDF_SPECULAR = 1 << 4;
 	static const int BSDF_ALL = BSDF_DIFFUSE | BSDF_GLOSSY | BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION;
 
+	const int SPECIULAR_REFLECT = BSDF_REFLECTION | BSDF_SPECULAR;
+	const int LAMBERTIAN_REFLECT = BSDF_REFLECTION | BSDF_DIFFUSE;
+
 	static const int FRESNEL_NOOP = 1 << 0;
 	static const int FRESNEL_DIELECTRIC = 1 << 1;
 	static const int FRESNEL_CONDOCTOR = 1 << 2;
@@ -108,7 +111,7 @@ namespace obj {
 		vec4 kt;
 		float shine;
 		float ior;
-		float bsdf;
+		int bsdf[16];
 	};
 #pragma pack(pop)
 	struct BVHStats {
@@ -206,6 +209,7 @@ namespace obj {
 			m.specular = vec4(0.6);
 			m.shine = 20;
 			m.ior = 0;
+			m.bsdf[1] = SPECIULAR_REFLECT;
 			materials.push_back(m);
 
 			int sphereMatId = materials.size() - 1;
