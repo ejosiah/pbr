@@ -97,7 +97,16 @@
     <None Include="..\shaders\hash.glsl">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="..\shaders\bsdf.glsl">
+    <None Include="..\shaders\reflection.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\specular_bsdf.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\lambertian_bsdf.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\sampling.glsl">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

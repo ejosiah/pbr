@@ -21,6 +21,20 @@ using namespace gl;
 
 namespace obj {
 
+	static const int BSDF_REFLECTION = 1 << 0;
+	static const int BSDF_TRANSMISSION = 1 << 1;
+	static const int BSDF_DIFFUSE = 1 << 2;
+	static const int BSDF_GLOSSY = 1 << 3;
+	static const int BSDF_SPECULAR = 1 << 4;
+	static const int BSDF_ALL = BSDF_DIFFUSE | BSDF_GLOSSY | BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION;
+
+	const int SPECIULAR_REFLECT = BSDF_REFLECTION | BSDF_SPECULAR;
+	const int LAMBERTIAN_REFLECT = BSDF_REFLECTION | BSDF_DIFFUSE;
+
+	static const int FRESNEL_NOOP = 1 << 0;
+	static const int FRESNEL_DIELECTRIC = 1 << 1;
+	static const int FRESNEL_CONDOCTOR = 1 << 2;
+
 #pragma pack(push, 1)
 	struct Sphere {
 		vec3 center;
@@ -93,8 +107,11 @@ namespace obj {
 		vec4 ambient;
 		vec4 diffuse;
 		vec4 specular;
+		vec4 kr;
+		vec4 kt;
 		float shine;
 		float ior;
+		int bsdf[16];
 	};
 #pragma pack(pop)
 	struct BVHStats {
@@ -154,7 +171,7 @@ namespace obj {
 			Plane plane;
 			plane.n = { 0, 1, 0 };
 			plane.d = dot(plane.n, min_point);
-		//	plane.d = 0;
+			plane.d = 0;
 			plane.id = planes.size();
 			planes.push_back(plane);
 			plane.matId = materials.size();
@@ -182,7 +199,7 @@ namespace obj {
 		}
 
 		void initSpheres() {
-			vec2 radius = { 0.3, 2 };
+			vec2 radius = { 0.3, 2.0 };
 			float placementRadius = 20;
 			auto rng = rngReal(0, 1);
 			
@@ -192,6 +209,7 @@ namespace obj {
 			m.specular = vec4(0.6);
 			m.shine = 20;
 			m.ior = 0;
+			m.bsdf[1] = SPECIULAR_REFLECT;
 			materials.push_back(m);
 
 			int sphereMatId = materials.size() - 1;
@@ -201,7 +219,8 @@ namespace obj {
 				Sphere s;
 				s.matId = sphereMatId;
 				s.radius = radius.x + rng() * (radius.y - radius.x);
-				vec2 u = vec2(cos(rng() * two_pi<float>()), sin(rng() * two_pi<float>())) * placementRadius;
+				float r = sqrt(rng());
+				vec2 u = vec2(r * cos(rng() * two_pi<float>()), r  * sin(rng() * two_pi<float>())) * placementRadius;
 				s.center = vec3(0);
 				s.objectToWorld = translate(mat4(1), vec3{ u.x, s.radius, u.y });
 				s.worldToObject = inverse(s.objectToWorld);

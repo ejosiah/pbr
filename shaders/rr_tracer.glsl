@@ -20,8 +20,11 @@ struct Material {
 	vec4 ambient;
 	vec4 diffuse;
 	vec4 specular;
+	vec4 kr;
+	vec4 kt;
 	float shine;
 	float ior;
+	int bsdf[16];
 };
 
 struct Sphere {
@@ -107,15 +110,19 @@ struct Ray {
 
 };
 
-struct SurfaceInteration {
+struct SurfaceInteration{
 	vec3 n;
 	vec3 p;
 	vec2 uv;
 	vec3 dpdu;
 	vec3 dpdv;
+	vec3 sn;
+	vec3 st;
+	vec3 sb;
+	vec4 color;
 	int matId;
-	int objId;
-	int objType;
+	int shape;
+	int shapeId;
 };
 
 struct HitInfo {
@@ -215,9 +222,14 @@ vec3 getNormal(Ray ray, HitInfo hit);
 
 vec3 getPosition(Ray ray, HitInfo hit);
 
-float ro(float n);
+//************** BSDF ***********************************************/
+vec3 f(vec3 woW, vec3 wiW, int type, SurfaceInteration interact);
 
-float fresnel(float n, float cos0);
+vec3 Sample_f(vec3 wo, out vec3 wi, vec2 u, out float pdf, SurfaceInteration intaract);
+
+float Pdf(vec3 wo, vec3 wi, int type);
+
+//******************************************************************
 
 bool anyHit(Ray ray){
 	HitInfo local_hit;
@@ -229,11 +241,11 @@ bool anyHit(Ray ray){
 		}
 	}
 
-	local_hit.t = ray.tMax;
-	int bvh_root = useLowPoly ? lowPolyRoot : 0;
-	if (intersectsTriangle(ray, local_hit, bvh_root)) {
-		return true;
-	}
+//	local_hit.t = ray.tMax;
+//	int bvh_root = useLowPoly ? lowPolyRoot : 0;
+//	if (intersectsTriangle(ray, local_hit, bvh_root)) {
+//		return true;
+//	}
 
 	local_hit.t = ray.tMax;
 	if(intersectPlane(ray, plane[0], local_hit)){
@@ -257,13 +269,13 @@ bool intersectScene(Ray ray, out HitInfo hit) {
 		}
 	}
 	
-	local_hit.t = hit.t;
-	if (intersectsTriangle(ray, local_hit, 0)) {
-		aHit = true;
-		if (local_hit.t < hit.t) {
-			hit = local_hit;
-		}
-	}
+//	local_hit.t = hit.t;
+//	if (intersectsTriangle(ray, local_hit, 0)) {
+//		aHit = true;
+//		if (local_hit.t < hit.t) {
+//			hit = local_hit;
+//		}
+//	}
 
 	local_hit.t = hit.t;
 	if(intersectPlane(ray, plane[0], local_hit)){
@@ -323,15 +335,40 @@ bool isNull(int node){
 }
 
 vec4 doIntersect(Ray ray, out SurfaceInteration interact){
-	HitInfo hit;
-	if (intersectScene(ray, hit)) {
-		intialize(hit, ray, interact);
-		return shade(interact, 0);
+	
+//	if (intersectScene(ray, hit)) {
+//		intialize(hit, ray, interact);
+//		return shade(interact, 0);
+//	}
+//	else {
+//		interact.matId = -1;
+//		return texture(skybox, ray.d);
+//	}
+
+	vec3 color = vec3(0);
+	vec3 f = vec3(1);
+	Ray r = ray;
+	for(int i = 0; i < MAX_BOUNCES; i++){
+		HitInfo hit;
+		if (intersectScene(r, hit)){
+			intialize(hit, ray, interact);;
+			if(interact.shape == PLANE){
+				color += f * shade(interact, 0).xyz;
+				break;
+			}else{
+				vec3 wi;
+				vec3 wo = (camera.cameraToWorld * vec4(0, 0, 0, 1)).xyz;
+				float pdf;
+				f *= Sample_f(wo, wi, vec2(0), pdf, interact);
+				r.o = interact.p + vec3(0.01);
+				r.d = wi;
+			}
+		}{
+			color += texture(skybox, r.d).xyz;
+			break;
+		}
 	}
-	else {
-		interact.matId = -1;
-		return texture(skybox, ray.d);
-	}
+	return vec4(color, 1.0);
 }
 
 vec4 trace(Ray ray, int depth) {
@@ -388,16 +425,6 @@ vec4 shade(SurfaceInteration interact, int depth) {
 //	return vec4(Li, 1);
 }
 
-float ro(float n) {
-	return ((n - 1) * (n - 1)) / ((n + 1) * (n + 1));
-}
-
-float fresnel(float n, float cos0) {
-	float R0 = ro(n);
-	return R0 + (1 - R0) * pow((1 - cos0), 5);
-}
-
-
 #pragma include("quadratic.glsl")
 #pragma include("sphere.glsl")
 #pragma include("cylinder.glsl")
@@ -406,3 +433,4 @@ float fresnel(float n, float cos0) {
 #pragma include("interaction.glsl")
 #pragma include("light.glsl")
 #pragma include("sphericalCS.glsl")
+#pragma include("reflection.glsl")
